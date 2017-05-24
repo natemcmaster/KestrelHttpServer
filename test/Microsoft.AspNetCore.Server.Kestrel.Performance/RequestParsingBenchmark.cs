@@ -5,6 +5,7 @@ using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
 using Microsoft.AspNetCore.Server.Kestrel.Internal.System.IO.Pipelines;
 using Microsoft.AspNetCore.Server.Kestrel.Performance.Mocks;
 
@@ -25,13 +26,14 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Performance
             var serviceContext = new ServiceContext
             {
                 HttpParserFactory = f => new HttpParser<FrameAdapter>(),
-                ServerOptions = new KestrelServerOptions()
+                ServerOptions = new KestrelServerOptions(),
+                Resources = new ResourceManager(ResourceCounter.Unlimited, ResourceCounter.Unlimited),
             };
             var frameContext = new FrameContext
             {
                 ServiceContext = serviceContext,
                 ConnectionInformation = new MockConnectionInformation(),
-                TimeoutControl = new MockTimeoutControl()
+                ConnectionControl = new MockConnectionControl()
             };
 
             Frame = new Frame<object>(application: null, frameContext: frameContext);

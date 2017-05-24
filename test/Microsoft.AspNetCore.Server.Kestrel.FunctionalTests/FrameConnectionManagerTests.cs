@@ -71,10 +71,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
 
                 using (var connection = new TestConnection(host.GetPort()))
                 {
-                    await connection.Send("GET / HTTP/1.1",
-                        "Host:",
-                        "",
-                        "");
+                    await connection.SendEmptyGet();
 
                     Assert.True(await appStartedWh.WaitAsync(TimeSpan.FromSeconds(10)));
 

@@ -31,5 +31,6 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
         MultipleHostHeaders,
         InvalidHostHeader,
         UpgradeRequestCannotHavePayload,
+        ServiceUnavailable,
     }
 }

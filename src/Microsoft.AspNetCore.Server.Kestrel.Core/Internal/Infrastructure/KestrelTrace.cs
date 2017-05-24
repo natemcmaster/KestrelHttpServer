@@ -30,6 +30,9 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
         private static readonly Action<ILogger, string, Exception> _connectionDisconnect =
             LoggerMessage.Define<string>(LogLevel.Debug, 10, @"Connection id ""{ConnectionId}"" disconnecting.");
 
+        private static readonly Action<ILogger, string, Exception> _connectionRejected =
+            LoggerMessage.Define<string>(LogLevel.Debug, 11, @"Connection id ""{ConnectionId}"" rejected.");
+
         private static readonly Action<ILogger, string, string, Exception> _applicationError =
             LoggerMessage.Define<string, string>(LogLevel.Error, 13, @"Connection id ""{ConnectionId}"", Request id ""{TraceIdentifier}"": An unhandled exception was thrown by the application.");
 
@@ -84,6 +87,11 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
         public virtual void ConnectionKeepAlive(string connectionId)
         {
             _connectionKeepAlive(_logger, connectionId, null);
+        }
+
+        public void ConnectionRejected(string connectionId)
+        {
+            _connectionRejected(_logger, connectionId, null);
         }
 
         public virtual void ConnectionDisconnect(string connectionId)

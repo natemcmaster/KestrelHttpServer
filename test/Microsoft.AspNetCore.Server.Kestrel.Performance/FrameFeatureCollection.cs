@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Performance
 {
@@ -79,7 +80,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Performance
             var serviceContext = new ServiceContext
             {
                 HttpParserFactory = _ => NullParser<FrameAdapter>.Instance,
-                ServerOptions = new KestrelServerOptions()
+                ServerOptions = new KestrelServerOptions(),
+                Resources = new ResourceManager(ResourceCounter.Unlimited, ResourceCounter.Unlimited),
             };
             var frameContext = new FrameContext
             {

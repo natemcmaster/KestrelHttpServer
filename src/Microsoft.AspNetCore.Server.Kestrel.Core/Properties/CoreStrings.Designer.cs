@@ -543,6 +543,20 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core
             => GetString("NonNegativeNullableIntRequired");
 
         /// <summary>
+        /// Value must be a non-negative number.
+        /// </summary>
+        internal static string NonNegativeNumberRequired
+        {
+            get => GetString("NonNegativeNumberRequired");
+        }
+
+        /// <summary>
+        /// Value must be a non-negative number.
+        /// </summary>
+        internal static string FormatNonNegativeNumberRequired()
+            => GetString("NonNegativeNumberRequired");
+
+        /// <summary>
         /// Value must be a positive integer.
         /// </summary>
         internal static string PositiveIntRequired
@@ -905,6 +919,34 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core
         /// </summary>
         internal static string FormatCannotUpgradeNonUpgradableRequest()
             => GetString("CannotUpgradeNonUpgradableRequest");
+
+        /// <summary>
+        /// Service is unavailable.
+        /// </summary>
+        internal static string BadRequest_ServiceUnavailable
+        {
+            get => GetString("BadRequest_ServiceUnavailable");
+        }
+
+        /// <summary>
+        /// Service is unavailable.
+        /// </summary>
+        internal static string FormatBadRequest_ServiceUnavailable()
+            => GetString("BadRequest_ServiceUnavailable");
+
+        /// <summary>
+        /// Request cannot be upgraded because the server has already opened the maximum number of upgraded connections.
+        /// </summary>
+        internal static string UpgradedConnectionLimitReached
+        {
+            get => GetString("UpgradedConnectionLimitReached");
+        }
+
+        /// <summary>
+        /// Request cannot be upgraded because the server has already opened the maximum number of upgraded connections.
+        /// </summary>
+        internal static string FormatUpgradedConnectionLimitReached()
+            => GetString("UpgradedConnectionLimitReached");
 
         private static string GetString(string name, params string[] formatterNames)
         {

@@ -92,6 +92,9 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core
                 case RequestRejectionReason.UpgradeRequestCannotHavePayload:
                     ex = new BadHttpRequestException(CoreStrings.BadRequest_UpgradeRequestCannotHavePayload, StatusCodes.Status400BadRequest);
                     break;
+                case RequestRejectionReason.ServiceUnavailable:
+                    ex = new BadHttpRequestException(CoreStrings.BadRequest_ServiceUnavailable, StatusCodes.Status503ServiceUnavailable);
+                    break;
                 default:
                     ex = new BadHttpRequestException(CoreStrings.BadRequest, StatusCodes.Status400BadRequest);
                     break;

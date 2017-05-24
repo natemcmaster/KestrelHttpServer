@@ -3,8 +3,10 @@
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure
 {
-    public interface ITimeoutControl
+    public interface IConnectionControl
     {
+        void SetAccepted();
+        void SetUpgraded();
         void SetTimeout(long ticks, TimeoutAction timeoutAction);
         void ResetTimeout(long ticks, TimeoutAction timeoutAction);
         void CancelTimeout();

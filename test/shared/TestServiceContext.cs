@@ -21,6 +21,7 @@ namespace Microsoft.AspNetCore.Testing
             ConnectionManager = new FrameConnectionManager(Log);
             DateHeaderValue = DateHeaderValueManager.GetDateHeaderValues().String;
             HttpParserFactory = frameAdapter => new HttpParser<FrameAdapter>(frameAdapter.Frame.ServiceContext.Log.IsEnabled(LogLevel.Information));
+            Resources = new ResourceManager(ResourceCounter.Unlimited, ResourceCounter.Unlimited);
             ServerOptions = new KestrelServerOptions
             {
                 AddServerHeader = false

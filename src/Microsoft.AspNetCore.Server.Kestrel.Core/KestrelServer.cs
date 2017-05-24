@@ -88,6 +88,14 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core
                     throw new NotSupportedException(CoreStrings.FormatUnknownTransportMode(serverOptions.ApplicationSchedulingMode));
             }
 
+            var normalConnections = serverOptions.Limits.MaxConcurrentConnections.HasValue
+                    ? ResourceCounter.Quota(serverOptions.Limits.MaxConcurrentConnections.Value)
+                    : ResourceCounter.Unlimited;
+
+            var upgradedConnections = serverOptions.Limits.MaxConcurrentUpgradedConnections.HasValue
+                    ? ResourceCounter.Quota(serverOptions.Limits.MaxConcurrentUpgradedConnections.Value)
+                    : ResourceCounter.Unlimited;
+
             return new ServiceContext
             {
                 Log = trace,
@@ -96,7 +104,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core
                 SystemClock = systemClock,
                 DateHeaderValueManager = dateHeaderValueManager,
                 ConnectionManager = connectionManager,
-                ServerOptions = serverOptions
+                Resources = new ResourceManager(normalConnections, upgradedConnections),
+                ServerOptions = serverOptions,
             };
         }
 

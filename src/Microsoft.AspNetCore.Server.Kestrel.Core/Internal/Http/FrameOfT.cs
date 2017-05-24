@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             {
                 while (!_requestProcessingStopping)
                 {
-                    TimeoutControl.SetTimeout(_keepAliveTicks, TimeoutAction.CloseConnection);
+                    ConnectionControl.SetTimeout(_keepAliveTicks, TimeoutAction.CloseConnection);
 
                     Reset();
 
@@ -87,9 +87,19 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
                     {
                         EnsureHostHeaderExists();
 
+                        if (!ServiceContext.Resources.NormalConnections.TryLockOne())
+                        {
+                            KestrelEventSource.Log.ConnectionRejected(ConnectionId);
+                            ServiceContext.Log.ConnectionRejected(ConnectionId);
+
+                            RejectRequest(RequestRejectionReason.ServiceUnavailable);
+                        }
+
+                        ConnectionControl.SetAccepted();
+
                         var messageBody = MessageBody.For(_httpVersion, FrameRequestHeaders, this);
                         _keepAlive = messageBody.RequestKeepAlive;
-                        _upgrade = messageBody.RequestUpgrade;
+                        _upgradeAvailable = messageBody.RequestUpgrade;
 
                         InitializeStreams(messageBody);
 
@@ -165,7 +175,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
                                 // An upgraded request has no defined request body length.
                                 // Cancel any pending read so the read loop ends.
-                                if (_upgrade)
+                                if (_upgradeAvailable)
                                 {
                                     Input.CancelPendingRead();
                                 }

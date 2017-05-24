@@ -18,12 +18,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
 {
-    public class FrameConnection : IConnectionContext, ITimeoutControl
+    public class FrameConnection : IConnectionContext, IConnectionControl
     {
         private readonly FrameConnectionContext _context;
         private List<IAdaptedConnection> _adaptedConnections;
         private readonly TaskCompletionSource<object> _socketClosedTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
         private Frame _frame;
+        private volatile bool _accepted;
+        private volatile bool _upgraded;
 
         private long _lastTimestamp;
         private long _timeoutTimestamp = long.MaxValue;
@@ -96,7 +98,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
                     ConnectionId = _context.ConnectionId,
                     ConnectionInformation = _context.ConnectionInformation,
                     ServiceContext = _context.ServiceContext,
-                    TimeoutControl = this,
+                    ConnectionControl = this,
                     Input = input,
                     Output = output
                 });
@@ -240,6 +242,36 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
             }
 
             Interlocked.Exchange(ref _lastTimestamp, timestamp);
+        }
+
+        public void SetUpgraded()
+        {
+            if (_upgraded)
+            {
+                return;
+            }
+
+            _upgraded = true;
+
+            _socketClosedTcs.Task.ContinueWith(state =>
+            {
+                _context.ServiceContext.Resources.UpgradedConnections.ReleaseOne();
+            });
+        }
+
+        public void SetAccepted()
+        {
+            if (_accepted)
+            {
+                return;
+            }
+
+            _accepted = true;
+
+            _socketClosedTcs.Task.ContinueWith(state =>
+            {
+                _context.ServiceContext.Resources.NormalConnections.ReleaseOne();
+            });
         }
 
         public void SetTimeout(long ticks, TimeoutAction timeoutAction)

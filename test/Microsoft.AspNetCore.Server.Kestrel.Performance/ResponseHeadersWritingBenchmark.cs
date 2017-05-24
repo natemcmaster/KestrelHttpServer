@@ -10,6 +10,7 @@ using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal;
 using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http;
+using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
 using Microsoft.AspNetCore.Server.Kestrel.Internal.System.IO.Pipelines;
 using Microsoft.AspNetCore.Server.Kestrel.Performance.Mocks;
 using Microsoft.AspNetCore.Testing;
@@ -119,14 +120,15 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Performance
                 DateHeaderValueManager = new DateHeaderValueManager(),
                 ServerOptions = new KestrelServerOptions(),
                 Log = new MockTrace(),
-                HttpParserFactory = f => new HttpParser<FrameAdapter>()
+                HttpParserFactory = f => new HttpParser<FrameAdapter>(),
+                Resources = new ResourceManager(ResourceCounter.Unlimited, ResourceCounter.Unlimited),
             };
 
             var frame = new TestFrame<object>(application: null, context: new FrameContext
             {
                 ServiceContext = serviceContext,
                 ConnectionInformation = new MockConnectionInformation(),
-                TimeoutControl = new MockTimeoutControl(),
+                ConnectionControl = new MockConnectionControl(),
                 Input = input.Reader,
                 Output = output
             });

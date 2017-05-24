@@ -187,5 +187,58 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             o.RequestHeadersTimeout = TimeSpan.FromSeconds(seconds);
             Assert.Equal(seconds, o.RequestHeadersTimeout.TotalSeconds);
         }
+
+        [Fact]
+        public void MaxConnectionsDefault()
+        {
+            Assert.Equal(uint.MaxValue, new KestrelServerLimits().MaxConcurrentConnections);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData(1u)]
+        [InlineData(uint.MaxValue)]
+        public void MaxConnectionsValid(uint? value)
+        {
+            var limits = new KestrelServerLimits
+            {
+                MaxConcurrentConnections = value
+            };
+
+            Assert.Equal(value, limits.MaxConcurrentConnections);
+        }
+
+        [Fact]
+        public void MaxConnectionsInvalid()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new KestrelServerLimits().MaxConcurrentUpgradedConnections = 0);
+        }
+
+        [Fact]
+        public void MaxUpgradedConnectionsDefault()
+        {
+            Assert.Equal(uint.MaxValue, new KestrelServerLimits().MaxConcurrentUpgradedConnections);
+        }
+
+        [Theory]
+        [InlineData(null)]
+        [InlineData(1u)]
+        [InlineData(uint.MaxValue)]
+        public void MaxUpgradedConnectionsValid(uint? value)
+        {
+            var limits = new KestrelServerLimits
+            {
+                MaxConcurrentUpgradedConnections = value
+            };
+
+            Assert.Equal(value, limits.MaxConcurrentUpgradedConnections);
+        }
+
+
+        [Fact]
+        public void MaxUpgradedConnectionsInvalid()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new KestrelServerLimits().MaxConcurrentUpgradedConnections = 0);
+        }
     }
 }

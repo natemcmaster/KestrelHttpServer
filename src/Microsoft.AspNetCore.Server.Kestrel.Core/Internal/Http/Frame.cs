@@ -41,7 +41,9 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
         private static readonly byte[] _bytesTransferEncodingChunked = Encoding.ASCII.GetBytes("\r\nTransfer-Encoding: chunked");
         private static readonly byte[] _bytesHttpVersion11 = Encoding.ASCII.GetBytes("HTTP/1.1 ");
         private static readonly byte[] _bytesEndHeaders = Encoding.ASCII.GetBytes("\r\n\r\n");
-        private static readonly byte[] _bytesServer = Encoding.ASCII.GetBytes("\r\nServer: Kestrel");
+        private static readonly byte[] _bytesServer = Encoding.ASCII.GetBytes("\r\nServer: " + Constants.ServerName);
+
+        private static readonly ArraySegment<byte> _serviceUnavailableBody = CreateAsciiByteArraySegment(Constants.ServiceUnavailableResponse);
 
         private const string EmptyPath = "/";
         private const string Asterisk = "*";
@@ -61,7 +63,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
         protected RequestProcessingStatus _requestProcessingStatus;
         protected bool _keepAlive;
-        protected bool _upgrade;
+        protected bool _upgradeAvailable;
         private bool _canHaveBody;
         private bool _autoChunk;
         protected Exception _applicationException;
@@ -109,7 +111,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
         public IFeatureCollection ConnectionFeatures { get; set; }
         public IPipeReader Input => _frameContext.Input;
         public OutputProducer Output { get; }
-        public ITimeoutControl TimeoutControl => _frameContext.TimeoutControl;
+        public IConnectionControl ConnectionControl => _frameContext.ConnectionControl;
 
         protected IKestrelTrace Log => ServiceContext.Log;
         private DateHeaderValueManager DateHeaderValueManager => ServiceContext.DateHeaderValueManager;
@@ -208,10 +210,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
         private int _statusCode;
         public int StatusCode
         {
-            get
-            {
-                return _statusCode;
-            }
+            get => _statusCode;
             set
             {
                 if (HasResponseStarted)
@@ -227,10 +226,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
         public string ReasonPhrase
         {
-            get
-            {
-                return _reasonPhrase;
-            }
+            get => _reasonPhrase;
+
             set
             {
                 if (HasResponseStarted)
@@ -764,6 +761,11 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
         private Task WriteSuffix()
         {
+            if (_requestRejectedException?.StatusCode == StatusCodes.Status503ServiceUnavailable)
+            {
+                return Output.WriteAsync(_serviceUnavailableBody, chunk: false);
+            }
+
             // _autoChunk should be checked after we are sure ProduceStart() has been called
             // since ProduceStart() may set _autoChunk to true.
             if (_autoChunk)
@@ -915,7 +917,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
                         break;
                     }
 
-                    TimeoutControl.ResetTimeout(_requestHeadersTimeoutTicks, TimeoutAction.SendTimeoutResponse);
+                    ConnectionControl.ResetTimeout(_requestHeadersTimeoutTicks, TimeoutAction.SendTimeoutResponse);
 
                     _requestProcessingStatus = RequestProcessingStatus.ParsingRequestLine;
                     goto case RequestProcessingStatus.ParsingRequestLine;
@@ -980,7 +982,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             }
             if (result)
             {
-                TimeoutControl.CancelTimeout();
+                ConnectionControl.CancelTimeout();
             }
             return result;
         }
@@ -1038,7 +1040,14 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             var dateHeaderValues = DateHeaderValueManager.GetDateHeaderValues();
 
             responseHeaders.SetRawDate(dateHeaderValues.String, dateHeaderValues.Bytes);
-            responseHeaders.ContentLength = 0;
+            if (statusCode == StatusCodes.Status503ServiceUnavailable)
+            {
+                responseHeaders.ContentLength = _serviceUnavailableBody.Count;
+            }
+            else
+            {
+                responseHeaders.ContentLength = 0;
+            }
 
             if (ServerOptions.AddServerHeader)
             {
