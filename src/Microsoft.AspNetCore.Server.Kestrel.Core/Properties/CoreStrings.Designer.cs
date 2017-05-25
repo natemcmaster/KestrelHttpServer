@@ -948,6 +948,20 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core
         internal static string FormatUpgradedConnectionLimitReached()
             => GetString("UpgradedConnectionLimitReached");
 
+        /// <summary>
+        /// IHttpUpgradeFeature.UpgradeAsync was already called and can only be called once per connection.
+        /// </summary>
+        internal static string UpgradeCannotBeCalledMultipleTimes
+        {
+            get => GetString("UpgradeCannotBeCalledMultipleTimes");
+        }
+
+        /// <summary>
+        /// IHttpUpgradeFeature.UpgradeAsync was already called and can only be called once per connection.
+        /// </summary>
+        internal static string FormatUpgradeCannotBeCalledMultipleTimes()
+            => GetString("UpgradeCannotBeCalledMultipleTimes");
+
         private static string GetString(string name, params string[] formatterNames)
         {
             var value = _resourceManager.GetString(name);

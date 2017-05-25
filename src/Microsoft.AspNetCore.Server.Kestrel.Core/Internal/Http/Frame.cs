@@ -64,10 +64,12 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
         protected RequestProcessingStatus _requestProcessingStatus;
         protected bool _keepAlive;
         protected bool _upgradeAvailable;
+        private volatile bool _wasUpgraded;
         private bool _canHaveBody;
         private bool _autoChunk;
         protected Exception _applicationException;
         private BadHttpRequestException _requestRejectedException;
+        private bool _serviceUnavailable;
 
         protected HttpVersion _httpVersion;
 
@@ -111,7 +113,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
         public IFeatureCollection ConnectionFeatures { get; set; }
         public IPipeReader Input => _frameContext.Input;
         public OutputProducer Output { get; }
-        public IConnectionControl ConnectionControl => _frameContext.ConnectionControl;
+        public ITimeoutControl TimeoutControl => _frameContext.TimeoutControl;
 
         protected IKestrelTrace Log => ServiceContext.Log;
         private DateHeaderValueManager DateHeaderValueManager => ServiceContext.DateHeaderValueManager;
@@ -140,6 +142,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             }
         }
 
+        public bool ServiceAvailable { get; set; } = true;
+        public bool WasUpgraded => _wasUpgraded;
         public IPAddress RemoteIpAddress { get; set; }
         public int RemotePort { get; set; }
         public IPAddress LocalIpAddress { get; set; }
@@ -374,6 +378,17 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
             _responseBytesWritten = 0;
             _requestCount++;
+        }
+
+        public void SetServiceUnavailable()
+        {
+            Debug.Assert(!HasResponseStarted, "This cannot be called after requests have been processed and responses started");
+
+            SetErrorResponseHeaders(StatusCodes.Status503ServiceUnavailable);
+
+            _serviceUnavailable = true;
+            _keepAlive = false;
+            _requestProcessingStopping = true;
         }
 
         /// <summary>
@@ -707,6 +722,19 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             CreateResponseHeader(appCompleted);
         }
 
+        protected async Task TryProduceServiceUnavailableResponse()
+        {
+            if (!_serviceUnavailable)
+            {
+                return;
+            }
+
+            Debug.Assert(!HasResponseStarted, "When service is unavailable, nothing else should have attempted to start a response");
+
+            await ProduceEndAwaited();
+            await Output.WriteAsync(_serviceUnavailableBody, chunk: false);
+        }
+
         protected Task TryProduceInvalidRequestResponse()
         {
             if (_requestRejectedException != null)
@@ -761,11 +789,6 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
 
         private Task WriteSuffix()
         {
-            if (_requestRejectedException?.StatusCode == StatusCodes.Status503ServiceUnavailable)
-            {
-                return Output.WriteAsync(_serviceUnavailableBody, chunk: false);
-            }
-
             // _autoChunk should be checked after we are sure ProduceStart() has been called
             // since ProduceStart() may set _autoChunk to true.
             if (_autoChunk)
@@ -917,7 +940,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
                         break;
                     }
 
-                    ConnectionControl.ResetTimeout(_requestHeadersTimeoutTicks, TimeoutAction.SendTimeoutResponse);
+                    TimeoutControl.ResetTimeout(_requestHeadersTimeoutTicks, TimeoutAction.SendTimeoutResponse);
 
                     _requestProcessingStatus = RequestProcessingStatus.ParsingRequestLine;
                     goto case RequestProcessingStatus.ParsingRequestLine;
@@ -982,7 +1005,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             }
             if (result)
             {
-                ConnectionControl.CancelTimeout();
+                TimeoutControl.CancelTimeout();
             }
             return result;
         }

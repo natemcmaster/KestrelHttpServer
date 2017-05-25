@@ -33,7 +33,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Performance
             {
                 ServiceContext = serviceContext,
                 ConnectionInformation = new MockConnectionInformation(),
-                ConnectionControl = new MockConnectionControl()
+                TimeoutControl = new MockTimeoutControl()
             };
 
             Frame = new Frame<object>(application: null, frameContext: frameContext);

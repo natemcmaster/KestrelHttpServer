@@ -18,14 +18,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
 {
-    public class FrameConnection : IConnectionContext, IConnectionControl
+    public class FrameConnection : IConnectionContext, ITimeoutControl
     {
         private readonly FrameConnectionContext _context;
         private List<IAdaptedConnection> _adaptedConnections;
         private readonly TaskCompletionSource<object> _socketClosedTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
         private Frame _frame;
-        private volatile bool _accepted;
-        private volatile bool _upgraded;
 
         private long _lastTimestamp;
         private long _timeoutTimestamp = long.MaxValue;
@@ -70,6 +68,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
 
         private async Task ProcessRequestsAsync<TContext>(IHttpApplication<TContext> application)
         {
+            var accepted = _context.ServiceContext.Resources.NormalConnections.TryLockOne();
             try
             {
                 Log.ConnectionStart(ConnectionId);
@@ -98,7 +97,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
                     ConnectionId = _context.ConnectionId,
                     ConnectionInformation = _context.ConnectionInformation,
                     ServiceContext = _context.ServiceContext,
-                    ConnectionControl = this,
+                    TimeoutControl = this,
                     Input = input,
                     Output = output
                 });
@@ -115,6 +114,21 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
                     adaptedPipelineTask = adaptedPipeline.RunAsync(stream);
                 }
 
+                if (!accepted)
+                {
+                    KestrelEventSource.Log.ConnectionRejected(ConnectionId);
+                    Log.ConnectionRejected(ConnectionId);
+
+                    // give a connection a maximum of 30 seconds to read back the 503 response before forcible closing
+                    var timeout = Math.Max(
+                        TimeSpan.FromSeconds(30).Ticks,
+                        _context.ServiceContext.ServerOptions.Limits.KeepAliveTimeout.Ticks);
+
+                    SetTimeout(timeout, TimeoutAction.CloseConnection);
+
+                    _frame.SetServiceUnavailable();
+                }
+
                 await _frame.ProcessRequestsAsync();
                 await adaptedPipelineTask;
                 await _socketClosedTcs.Task;
@@ -127,6 +141,16 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
             {
                 _context.ServiceContext.ConnectionManager.RemoveConnection(_context.FrameConnectionId);
                 DisposeAdaptedConnections();
+
+                if (accepted)
+                {
+                    _context.ServiceContext.Resources.NormalConnections.ReleaseOne();
+                }
+
+                if (_frame.WasUpgraded)
+                {
+                    _context.ServiceContext.Resources.UpgradedConnections.ReleaseOne();
+                }
 
                 Log.ConnectionStop(ConnectionId);
                 KestrelEventSource.Log.ConnectionStop(this);
@@ -242,36 +266,6 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal
             }
 
             Interlocked.Exchange(ref _lastTimestamp, timestamp);
-        }
-
-        public void SetUpgraded()
-        {
-            if (_upgraded)
-            {
-                return;
-            }
-
-            _upgraded = true;
-
-            _socketClosedTcs.Task.ContinueWith(state =>
-            {
-                _context.ServiceContext.Resources.UpgradedConnections.ReleaseOne();
-            });
-        }
-
-        public void SetAccepted()
-        {
-            if (_accepted)
-            {
-                return;
-            }
-
-            _accepted = true;
-
-            _socketClosedTcs.Task.ContinueWith(state =>
-            {
-                _context.ServiceContext.Resources.NormalConnections.ReleaseOne();
-            });
         }
 
         public void SetTimeout(long ticks, TimeoutAction timeoutAction)

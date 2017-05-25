@@ -113,6 +113,34 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
         }
 
         [Fact]
+        public async Task UpgradeCannotBeCalledMultipleTimes()
+        {
+            var upgradeTcs = new TaskCompletionSource<object>();
+            using (var server = new TestServer(async context =>
+            {
+                var feature = context.Features.Get<IHttpUpgradeFeature>();
+                await feature.UpgradeAsync();
+
+                try
+                {
+                    await feature.UpgradeAsync();
+                }
+                catch (Exception e)
+                {
+                    upgradeTcs.TrySetException(e);
+                    throw;
+                }
+            }))
+            using (var connection = server.CreateConnection())
+            {
+                await connection.SendEmptyGetWithUpgrade();
+            }
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await upgradeTcs.Task.TimeoutAfter(TimeSpan.FromSeconds(15)));
+            Assert.Equal(CoreStrings.UpgradeCannotBeCalledMultipleTimes, ex.Message);
+        }
+
+        [Fact]
         public async Task RejectsRequestWithContentLengthAndUpgrade()
         {
             using (var server = new TestServer(context => TaskCache.CompletedTask))

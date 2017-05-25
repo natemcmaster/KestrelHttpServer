@@ -703,7 +703,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Transport.Libuv.Tests
                 {
                     PipeFactory = _pipeFactory
                 },
-                ConnectionControl = Mock.Of<IConnectionControl>(),
+                TimeoutControl = Mock.Of<ITimeoutControl>(),
                 Output = pipe
             });
 

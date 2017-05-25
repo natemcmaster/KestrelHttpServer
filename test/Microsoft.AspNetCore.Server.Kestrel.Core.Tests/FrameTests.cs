@@ -37,7 +37,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
         private readonly PipeFactory _pipelineFactory;
         private ReadCursor _consumed;
         private ReadCursor _examined;
-        private Mock<IConnectionControl> _connectionControl;
+        private Mock<ITimeoutControl> _timeoutControl;
 
         private class TestFrame<TContext> : Frame<TContext>
         {
@@ -59,7 +59,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             _output = _pipelineFactory.Create();
 
             _serviceContext = new TestServiceContext();
-            _connectionControl = new Mock<IConnectionControl>();
+            _timeoutControl = new Mock<ITimeoutControl>();
             _frameContext = new FrameContext
             {
                 ServiceContext = _serviceContext,
@@ -67,7 +67,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
                 {
                     PipeFactory = _pipelineFactory
                 },
-                ConnectionControl = _connectionControl.Object,
+                TimeoutControl = _timeoutControl.Object,
                 Input = _input.Reader,
                 Output = _output
             };
@@ -350,7 +350,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             _input.Reader.Advance(_consumed, _examined);
 
             var expectedRequestHeadersTimeout = _serviceContext.ServerOptions.Limits.RequestHeadersTimeout.Ticks;
-            _connectionControl.Verify(cc => cc.ResetTimeout(expectedRequestHeadersTimeout, TimeoutAction.SendTimeoutResponse));
+            _timeoutControl.Verify(cc => cc.ResetTimeout(expectedRequestHeadersTimeout, TimeoutAction.SendTimeoutResponse));
         }
 
         [Fact]
@@ -467,7 +467,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             var requestProcessingTask = _frame.ProcessRequestsAsync();
 
             var expectedKeepAliveTimeout = _serviceContext.ServerOptions.Limits.KeepAliveTimeout.Ticks;
-            _connectionControl.Verify(cc => cc.SetTimeout(expectedKeepAliveTimeout, TimeoutAction.CloseConnection));
+            _timeoutControl.Verify(cc => cc.SetTimeout(expectedKeepAliveTimeout, TimeoutAction.CloseConnection));
 
             _frame.Stop();
             _input.Writer.Complete();
@@ -735,37 +735,9 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
         }
 
         [Fact]
-        public async Task MarksConnectionAsAccepted()
-        {
-            _connectionControl.Setup(t => t.SetAccepted()).Verifiable();
-
-            await _input.Writer.WriteAsync(Encoding.ASCII.GetBytes("GET / HTTP/1.0\r\n\r\n"));
-            await _frame.ProcessRequestsAsync().TimeoutAfter(TimeSpan.FromSeconds(10));
-
-            _connectionControl.Verify();
-        }
-
-        [Fact]
-        public async Task RejectsWhenNoConnectionsAvailable()
-        {
-            var mockTrace = new Mock<IKestrelTrace>();
-            mockTrace.Setup(t => t.ConnectionRejected(It.IsAny<string>())).Verifiable();
-            _serviceContext.Log = mockTrace.Object;
-            _serviceContext.Resources = new ResourceManager(ResourceCounter.Quota(0), ResourceCounter.Unlimited);
-            _connectionControl.Setup(t => t.SetAccepted()).Throws(new InvalidOperationException("Request should not be accepted"));
-
-            await _input.Writer.WriteAsync(Encoding.ASCII.GetBytes("GET / HTTP/1.0\r\n\r\n"));
-            await _frame.ProcessRequestsAsync().TimeoutAfter(TimeSpan.FromSeconds(10));
-
-            Assert.Equal(StatusCodes.Status503ServiceUnavailable, _frame.StatusCode);
-            mockTrace.Verify();
-        }
-
-        [Fact]
         public async Task RejectServiceUnavailableSendsBody()
         {
-            _serviceContext.Resources = new ResourceManager(ResourceCounter.Quota(0), ResourceCounter.Unlimited);
-
+            _frame.SetBadRequestState(BadHttpRequestException.GetException(RequestRejectionReason.ServiceUnavailable));
             await _input.Writer.WriteAsync(Encoding.ASCII.GetBytes("GET / HTTP/1.0\r\n\r\n"));
             await _frame.ProcessRequestsAsync().TimeoutAfter(TimeSpan.FromSeconds(10));
 

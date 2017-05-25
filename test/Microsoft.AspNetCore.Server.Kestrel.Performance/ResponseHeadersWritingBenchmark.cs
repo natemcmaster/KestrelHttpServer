@@ -128,7 +128,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Performance
             {
                 ServiceContext = serviceContext,
                 ConnectionInformation = new MockConnectionInformation(),
-                ConnectionControl = new MockConnectionControl(),
+                TimeoutControl = new MockTimeoutControl(),
                 Input = input.Reader,
                 Output = output
             });

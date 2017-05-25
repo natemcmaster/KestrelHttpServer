@@ -318,4 +318,7 @@
   <data name="UpgradedConnectionLimitReached" xml:space="preserve">
     <value>Request cannot be upgraded because the server has already opened the maximum number of upgraded connections.</value>
   </data>
+  <data name="UpgradeCannotBeCalledMultipleTimes" xml:space="preserve">
+    <value>IHttpUpgradeFeature.UpgradeAsync was already called and can only be called once per connection.</value>
+  </data>
 </root>

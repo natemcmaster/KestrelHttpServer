@@ -5,16 +5,8 @@ using Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure;
 
 namespace Microsoft.AspNetCore.Server.Kestrel.Performance.Mocks
 {
-    public class MockConnectionControl : IConnectionControl
+    public class MockTimeoutControl : ITimeoutControl
     {
-        public void SetAccepted()
-        {
-        }
-
-        public void SetUpgraded()
-        {
-        }
-
         public void CancelTimeout()
         {
         }

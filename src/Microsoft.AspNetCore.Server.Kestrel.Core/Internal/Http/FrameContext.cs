@@ -12,7 +12,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
         public string ConnectionId { get; set; }
         public ServiceContext ServiceContext { get; set; }
         public IConnectionInformation ConnectionInformation { get; set; }
-        public IConnectionControl ConnectionControl { get; set; }
+        public ITimeoutControl TimeoutControl { get; set; }
         public IPipeReader Input { get; set; }
         public IPipe Output { get; set; }
     }

@@ -28,7 +28,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
                 {
                     PipeFactory = new PipeFactory()
                 },
-                ConnectionControl = null
+                TimeoutControl = null
             };
 
             var frame = new Frame<object>(application: null, frameContext: frameContext);

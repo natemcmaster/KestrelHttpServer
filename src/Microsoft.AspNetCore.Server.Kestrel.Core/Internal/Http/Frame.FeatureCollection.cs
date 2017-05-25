@@ -235,12 +235,17 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
                 throw new InvalidOperationException(CoreStrings.CannotUpgradeNonUpgradableRequest);
             }
 
+            if (_wasUpgraded)
+            {
+                throw new InvalidOperationException(CoreStrings.UpgradeCannotBeCalledMultipleTimes);
+            }
+
             if (!ServiceContext.Resources.UpgradedConnections.TryLockOne())
             {
                 throw new InvalidOperationException(CoreStrings.UpgradedConnectionLimitReached);
             }
 
-            _frameContext.ConnectionControl.SetUpgraded();
+            _wasUpgraded = true;
 
             StatusCode = StatusCodes.Status101SwitchingProtocols;
             ReasonPhrase = "Switching Protocols";

@@ -41,16 +41,25 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
 
                 var goAway = server.CreateConnection();
                 disposables.Push(goAway);
-                await goAway.SendEmptyGetAsKeepAlive();
+                try
+                {
+                    await goAway.SendEmptyGetAsKeepAlive();
+                }
+                catch { }
                 await goAway.Receive("HTTP/1.1 503 Service Unavailable");
 
                 var fail = server.CreateConnection();
                 disposables.Push(fail);
-                await fail.Send("GET / HTTP/1.1",
-                    // "Host:", missing host header should trigger 400 before TryLock is called
-                    "",
-                    "");
-                await fail.Receive("HTTP/1.1 400");
+                try
+                {
+                    await fail.Send("GET / HTTP/1.1",
+                        // "Host:", missing host header would triggered 400 response,
+                        // but limit is met so send 503 regardless of bad request
+                        "",
+                        "");
+                }
+                catch { }
+                await fail.Receive("HTTP/1.1 503 Service Unavailable");
             }
         }
 
@@ -77,7 +86,6 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
         [Fact]
         public async Task RejectsRequestsWhenLimitReached()
         {
-            // arrange
             const int max = 10;
             var (context, _) = SetupMaxConnections(max);
 
@@ -93,11 +101,14 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
                     await connection.Receive("HTTP/1.1 200 OK");
                 }
 
-                // act & assert
-                using (var connection = server.CreateConnection())
+                // limit has been reached
+                for (var i = 0; i < 10; i++)
                 {
-                    await connection.SendEmptyGetAsKeepAlive();
-                    await connection.Receive("HTTP/1.1 503 Service Unavailable");
+                    using (var connection = server.CreateConnection())
+                    {
+                        await connection.SendEmptyGetAsKeepAlive();
+                        await connection.Receive("HTTP/1.1 503 Service Unavailable");
+                    }
                 }
             }
         }

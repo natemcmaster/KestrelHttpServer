@@ -34,7 +34,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
             {
                 while (!_requestProcessingStopping)
                 {
-                    ConnectionControl.SetTimeout(_keepAliveTicks, TimeoutAction.CloseConnection);
+                    TimeoutControl.SetTimeout(_keepAliveTicks, TimeoutAction.CloseConnection);
 
                     Reset();
 
@@ -86,16 +86,6 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
                     if (!_requestProcessingStopping)
                     {
                         EnsureHostHeaderExists();
-
-                        if (!ServiceContext.Resources.NormalConnections.TryLockOne())
-                        {
-                            KestrelEventSource.Log.ConnectionRejected(ConnectionId);
-                            ServiceContext.Log.ConnectionRejected(ConnectionId);
-
-                            RejectRequest(RequestRejectionReason.ServiceUnavailable);
-                        }
-
-                        ConnectionControl.SetAccepted();
 
                         var messageBody = MessageBody.For(_httpVersion, FrameRequestHeaders, this);
                         _keepAlive = messageBody.RequestKeepAlive;
@@ -259,6 +249,7 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Http
                     // If _requestAborted is set, the connection has already been closed.
                     if (Volatile.Read(ref _requestAborted) == 0)
                     {
+                        await TryProduceServiceUnavailableResponse();
                         await TryProduceInvalidRequestResponse();
                         Output.Dispose();
                     }
