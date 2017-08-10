@@ -1,17 +1,28 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26706.0
+VisualStudioVersion = 15.0.26730.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{7972A5D6-3385-4127-9277-428506DD44FF}"
 	ProjectSection(SolutionItems) = preProject
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
 		build.cmd = build.cmd
-		makefile.shade = makefile.shade
+		Directory.Build.props = Directory.Build.props
+		Directory.Build.targets = Directory.Build.targets
 		NuGet.Config = NuGet.Config
+		version.xml = version.xml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{2D5D5227-4DBD-499A-96B1-76A36B03B750}"
+	ProjectSection(SolutionItems) = preProject
+		src\Directory.Build.props = src\Directory.Build.props
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{D3273454-EA07-41D2-BF0B-FCC3675C2483}"
+	ProjectSection(SolutionItems) = preProject
+		test\Directory.Build.props = test\Directory.Build.props
+		test\xunit.runner.json = test\xunit.runner.json
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{8A3D00B8-1CCF-4BE6-A060-11104CE2D9CE}"
 EndProject
@@ -50,7 +61,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kestrel.Https", "src\Kestre
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kestrel.FunctionalTests", "test\Kestrel.FunctionalTests\Kestrel.FunctionalTests.csproj", "{9559A5F1-080C-4909-B6CF-7E4B3DC55748}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kestrel.Performance", "test\Kestrel.Performance\Kestrel.Performance.csproj", "{EBFE9719-A44B-4978-A71F-D5C254E7F35A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kestrel.Performance", "benchmarks\Kestrel.Performance\Kestrel.Performance.csproj", "{EBFE9719-A44B-4978-A71F-D5C254E7F35A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestCertificates", "TestCertificates", "{2822C132-BFFB-4D53-AC5B-E7E47DD81A6E}"
 	ProjectSection(SolutionItems) = preProject
@@ -79,6 +90,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kestrel.Transport.Libuv.Tests", "test\Kestrel.Transport.Libuv.Tests\Kestrel.Transport.Libuv.Tests.csproj", "{D95A7EC3-48AC-4D03-B2E2-0DA3E13BD3A4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Kestrel.Tests", "test\Kestrel.Tests\Kestrel.Tests.csproj", "{4F1C30F8-CCAA-48D7-9DF6-2A84021F5BCC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "benchmarks", "benchmarks", "{A95C3BE1-B850-4265-97A0-777ADCCD437F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -271,7 +284,7 @@ Global
 		{BD2D4D29-1BD9-40D0-BB31-337D5416B63C} = {327F7880-D9AF-46BD-B45C-3B7E34A01DFD}
 		{5F64B3C3-0C2E-431A-B820-A81BBFC863DA} = {2D5D5227-4DBD-499A-96B1-76A36B03B750}
 		{9559A5F1-080C-4909-B6CF-7E4B3DC55748} = {D3273454-EA07-41D2-BF0B-FCC3675C2483}
-		{EBFE9719-A44B-4978-A71F-D5C254E7F35A} = {D3273454-EA07-41D2-BF0B-FCC3675C2483}
+		{EBFE9719-A44B-4978-A71F-D5C254E7F35A} = {A95C3BE1-B850-4265-97A0-777ADCCD437F}
 		{2822C132-BFFB-4D53-AC5B-E7E47DD81A6E} = {0EF2ACDF-012F-4472-A13A-4272419E2903}
 		{A76B8C8C-0DC5-4DD3-9B1F-02E51A0915F4} = {2D5D5227-4DBD-499A-96B1-76A36B03B750}
 		{56139957-5C29-4E7D-89BD-7D20598B4EAF} = {2D5D5227-4DBD-499A-96B1-76A36B03B750}
